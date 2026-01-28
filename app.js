@@ -87,6 +87,20 @@
     return trimmed.slice(0, 32);
   }
 
+  function requireNameInput() {
+    const raw = String(el.nameInput.value || "").trim();
+    if (!raw) {
+      showJoinError("Enter your name to join the room.");
+      try {
+        el.nameInput.focus();
+      } catch {
+        // ignore
+      }
+      return null;
+    }
+    return safeName(raw);
+  }
+
   function requireSupabaseConfig() {
     if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
       throw new Error("Missing Supabase config. Set SUPABASE_URL and SUPABASE_ANON_KEY in config.js");
@@ -377,14 +391,16 @@
   function attachUiHandlers() {
     el.createRoomBtn.addEventListener("click", async () => {
       showJoinError("");
-      const name = safeName(el.nameInput.value);
+      const name = requireNameInput();
+      if (!name) return;
       const roomId = randomRoomCode(6);
       await joinRoom(roomId, name);
     });
 
     el.joinRoomBtn.addEventListener("click", async () => {
       showJoinError("");
-      const name = safeName(el.nameInput.value);
+      const name = requireNameInput();
+      if (!name) return;
       const roomId = normalizeRoomCode(el.roomInput.value);
       if (!roomId) {
         showJoinError("Enter a room code (or create a new room). ");
@@ -421,6 +437,17 @@
   async function joinRoom(roomId, name) {
     roomId = normalizeRoomCode(roomId);
     name = safeName(name);
+
+    // Prevent accidental deep-link joins as "Anonymous".
+    if (name === "Anonymous") {
+      showJoinError("Enter your name to join the room.");
+      try {
+        el.nameInput.focus();
+      } catch {
+        // ignore
+      }
+      return;
+    }
 
     try {
       requireSupabaseConfig();
@@ -570,15 +597,30 @@
     if (lastName) el.nameInput.value = lastName;
     if (lastRoom) el.roomInput.value = lastRoom;
 
-    // Auto-join if URL has room
+    setViews(false);
+
+    // Deep-link UX: if URL has a room, prefill it but let the user pick their name.
+    // (Previously we auto-joined, which forced an empty-name user into "Anonymous".)
     const roomFromUrl = normalizeRoomCode(getUrlParam("room"));
     if (roomFromUrl) {
-      const name = safeName(el.nameInput.value);
       el.roomInput.value = roomFromUrl;
-      joinRoom(roomFromUrl, name);
+
+      // If the last stored name is blank or "Anonymous", force a better first-run experience.
+      if (!String(el.nameInput.value || "").trim() || safeName(el.nameInput.value) === "Anonymous") {
+        el.nameInput.value = "";
+      }
+
+      // Encourage a name entry before joining.
+      requestAnimationFrame(() => {
+        try {
+          el.nameInput.focus();
+          el.nameInput.select();
+        } catch {
+          // ignore
+        }
+      });
     }
 
-    setViews(false);
     render();
   }
 
