@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Planning Poker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><img src="assets/logo.svg" alt="" /></div>
+        <div>
+          <h1>Planning Poker</h1>
+          <p class="muted">Fibonacci cards • Realtime rooms</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="link" href="https://supabase.com" target="_blank" rel="noreferrer">Powered by Supabase Realtime</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <section id="joinView" class="card">
+        <h2>Join a room</h2>
+        <div class="grid">
+          <label>
+            <span>Your name</span>
+            <input id="nameInput" placeholder="e.g. Alex" maxlength="32" autocomplete="nickname" />
+          </label>
+
+          <label>
+            <span>Room code</span>
+            <input id="roomInput" placeholder="e.g. 7KQ2M9" maxlength="16" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="createRoomBtn" class="btn primary" type="button">Create new room</button>
+          <button id="joinRoomBtn" class="btn" type="button">Join room</button>
+        </div>
+
+        <div class="hint">
+          <p class="muted">This is a static app. Realtime sync uses Supabase URL + anon key in <code>config.js</code>.</p>
+        </div>
+
+        <div id="joinError" class="error" hidden></div>
+      </section>
+
+      <section id="roomView" class="card" hidden>
+        <div class="room-top">
+          <div>
+            <h2>Room <span id="roomCode"></span></h2>
+            <div class="muted">
+              <span id="meLabel"></span>
+              <span class="dot">•</span>
+              <span id="hostLabel"></span>
+            </div>
+          </div>
+
+          <div class="room-actions">
+            <button id="copyLinkBtn" class="btn" type="button">Copy link</button>
+            <button id="leaveBtn" class="btn danger" type="button">Leave</button>
+          </div>
+        </div>
+
+        <div class="layout">
+          <div class="panel">
+            <h3>Players</h3>
+            <ul id="playersList" class="players"></ul>
+
+            <div class="controls">
+              <button id="revealBtn" class="btn primary" type="button">Reveal</button>
+              <button id="resetBtn" class="btn" type="button">Reset</button>
+            </div>
+
+            <div id="status" class="status muted"></div>
+          </div>
+
+          <div class="panel">
+            <h3>Pick a card</h3>
+            <div id="cards" class="cards" aria-label="Fibonacci cards"></div>
+            <div class="muted small">Cards: 0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer muted">
+      Static-friendly: upload these files to S3 and enable static website hosting.
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
