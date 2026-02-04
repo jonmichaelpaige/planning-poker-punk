@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const FIB_CARDS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+  const FIB_CARDS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, "?"];
 
   const el = {
     joinView: document.getElementById("joinView"),
@@ -205,7 +205,15 @@
       if (!state.revealed) {
         meta.textContent = hasVote ? "Voted" : "Waiting";
       } else {
-        meta.textContent = hasVote ? `Vote: ${state.votes[p.id]}` : "No vote";
+        if (hasVote) {
+          meta.innerHTML = '';
+          const voteCard = document.createElement("span");
+          voteCard.className = "vote-card-mini";
+          voteCard.textContent = state.votes[p.id];
+          meta.appendChild(voteCard);
+        } else {
+          meta.textContent = "No vote";
+        }
       }
 
       left.appendChild(name);

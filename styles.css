@@ -492,6 +492,67 @@ input:focus{
   transform: none !important;
 }
 
+/* Mini vote card shown after reveal */
+.vote-card-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 44px;
+  padding: 4px 8px;
+  font-size: 18px;
+  font-weight: 800;
+  border-radius: 6px;
+  border: 2px solid var(--xenon-gold);
+  background: linear-gradient(145deg, rgba(255,215,0,.2), rgba(255,215,0,.1));
+  color: var(--xenon-gold);
+  text-shadow: 0 0 12px rgba(255,215,0,.8);
+  box-shadow: 
+    0 0 16px rgba(255,215,0,.4),
+    0 0 32px rgba(255,215,0,.2),
+    inset 0 1px 4px rgba(0,0,0,.4);
+  animation: revealPop 0.4s ease-out;
+  position: relative;
+}
+
+.vote-card-mini::before {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--xenon-gold), rgba(255,215,0,.6));
+  box-shadow: 0 0 6px var(--xenon-gold);
+  top: 4px;
+  left: 4px;
+}
+
+.vote-card-mini::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--xenon-gold), rgba(255,215,0,.6));
+  box-shadow: 0 0 6px var(--xenon-gold);
+  bottom: 4px;
+  right: 4px;
+}
+
+@keyframes revealPop {
+  0% {
+    transform: scale(0) rotateY(180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15) rotateY(0);
+  }
+  100% {
+    transform: scale(1) rotateY(0);
+    opacity: 1;
+  }
+}
+
 .controls{ display:flex; gap: 10px; margin-top: 12px; }
 
 .status{ 
