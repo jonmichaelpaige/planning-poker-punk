@@ -196,7 +196,18 @@
 
       const name = document.createElement("div");
       name.className = "name";
-      name.textContent = p.name + (p.id === state.me.id ? " (you)" : "");
+
+      const nameText = document.createElement("span");
+      nameText.className = "name-text";
+      nameText.textContent = p.name + (p.id === state.me.id ? " (you)" : "");
+      name.appendChild(nameText);
+
+      if (p.id === state.hostId) {
+        const hostInline = document.createElement("span");
+        hostInline.className = "badge host host-inline";
+        hostInline.textContent = "Host";
+        name.appendChild(hostInline);
+      }
 
       const meta = document.createElement("div");
       meta.className = "muted small";
@@ -221,13 +232,6 @@
         voteCard.className = "vote-card-mini";
         voteCard.textContent = String(state.votes[p.id]);
         badges.push(voteCard);
-      }
-
-      if (p.id === state.hostId) {
-        const host = document.createElement("span");
-        host.className = "badge host";
-        host.textContent = "Host";
-        badges.push(host);
       }
 
       if (!state.revealed && Object.prototype.hasOwnProperty.call(state.votes, p.id)) {
