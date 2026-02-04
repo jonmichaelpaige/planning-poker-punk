@@ -205,22 +205,23 @@
       if (!state.revealed) {
         meta.textContent = hasVote ? "Voted" : "Waiting";
       } else {
-        if (hasVote) {
-          meta.innerHTML = '';
-          const voteCard = document.createElement("span");
-          voteCard.className = "vote-card-mini";
-          voteCard.textContent = state.votes[p.id];
-          meta.appendChild(voteCard);
-        } else {
-          meta.textContent = "No vote";
-        }
+        meta.textContent = hasVote ? "Revealed" : "No vote";
       }
 
       left.appendChild(name);
       left.appendChild(meta);
 
       const right = document.createElement("div");
+      right.className = "right";
       const badges = [];
+
+      // Show revealed vote as a mini card on the right so the row doesn't get taller.
+      if (state.revealed && hasVote) {
+        const voteCard = document.createElement("span");
+        voteCard.className = "vote-card-mini";
+        voteCard.textContent = String(state.votes[p.id]);
+        badges.push(voteCard);
+      }
 
       if (p.id === state.hostId) {
         const host = document.createElement("span");

@@ -369,6 +369,14 @@ input:focus{
 
 .player .left{ display:flex; flex-direction:column; gap: 3px; min-width: 0; }
 
+.player .right{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .player .name{ 
   font-weight: 600; 
   overflow:hidden; 
