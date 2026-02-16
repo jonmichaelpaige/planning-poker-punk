@@ -30,6 +30,8 @@ export class Ui {
     this.win = win;
     this.doc = doc;
     this.el = el;
+
+    this._deucesEggTimer = null;
   }
 
   setStatus(message) {
@@ -160,5 +162,39 @@ export class Ui {
     const total = state.presence.length;
     const voted = Object.keys(state.votes).filter(id => state.presence.some(p => p.id === id)).length;
     this.setStatus(state.revealed ? `Revealed • ${total} players` : `Waiting • ${voted}/${total} voted`);
+  }
+
+  showDeucesEgg() {
+    const existing = this.doc.getElementById("deucesEggOverlay");
+    if (existing) return;
+
+    const overlay = this.doc.createElement("div");
+    overlay.id = "deucesEggOverlay";
+    overlay.className = "deuces-egg-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Deuces" );
+
+    const img = this.doc.createElement("img");
+    img.className = "deuces-egg-img";
+    img.src = "deuces.png";
+    img.alt = "Deuces";
+    overlay.appendChild(img);
+
+    const cleanup = () => {
+      if (this._deucesEggTimer) {
+        this.win.clearTimeout(this._deucesEggTimer);
+        this._deucesEggTimer = null;
+      }
+      try {
+        overlay.remove();
+      } catch {
+        // ignore
+      }
+    };
+
+    overlay.addEventListener("click", cleanup);
+    this.doc.body.appendChild(overlay);
+
+    this._deucesEggTimer = this.win.setTimeout(cleanup, 2500);
   }
 }

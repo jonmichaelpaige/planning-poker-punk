@@ -431,6 +431,24 @@ input:focus{
   box-shadow: var(--glow-cyan);
 }
 
+.deuces-egg-overlay{
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+.deuces-egg-img{
+  width: min(520px, 90vw);
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
 .badge.host{ 
   border-color: var(--xenon-violet);
   background: linear-gradient(145deg, rgba(196,113,237,.2), rgba(196,113,237,.12));

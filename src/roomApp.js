@@ -45,6 +45,10 @@ export class RoomApp {
 
     this.state = createInitialState({ userId: getOrCreateUserId(win) });
 
+    this._lastRevealed = false;
+    this._deucesEggShown = false;
+    this._deucesEggPending = false;
+
     this.supabaseClient = null;
     this.realtime = null;
     this.host = new HostController(win, this.state);
@@ -53,6 +57,17 @@ export class RoomApp {
     this.onPickCard = this.onPickCard.bind(this);
     this.onReveal = this.onReveal.bind(this);
     this.onReset = this.onReset.bind(this);
+  }
+
+  everyonePresentVotedValue(value) {
+    const present = this.state.presence || [];
+    if (!present.length) return false;
+    for (const p of present) {
+      if (!Object.prototype.hasOwnProperty.call(this.state.votes, p.id)) return false;
+      const v = this.state.votes[p.id];
+      if (!(v === value || String(v) === String(value))) return false;
+    }
+    return true;
   }
 
   requireSupabaseConfig() {
@@ -70,7 +85,30 @@ export class RoomApp {
   }
 
   render() {
+    const wasRevealed = this._lastRevealed;
     this.ui.render(this.state, { canControlRound: () => this.host.canControlRound() });
+
+    if (!wasRevealed && this.state.revealed && !this._deucesEggShown) {
+      this._deucesEggPending = true;
+    }
+
+    if (!this.state.revealed) {
+      this._deucesEggPending = false;
+    }
+
+    if (this._deucesEggPending && this.state.revealed && !this._deucesEggShown) {
+      // Wait until votes are complete (snapshots can land after the reveal broadcast).
+      if (this.everyonePresentVotedValue(2)) {
+        this.ui.showDeucesEgg();
+        this._deucesEggShown = true;
+        this._deucesEggPending = false;
+      } else if (this.state.presence.length && Object.keys(this.state.votes || {}).length >= this.state.presence.length) {
+        // Votes appear complete but not all 2; stop checking for this reveal.
+        this._deucesEggPending = false;
+      }
+    }
+
+    this._lastRevealed = !!this.state.revealed;
   }
 
   updatePresenceAndHost() {
@@ -116,7 +154,16 @@ export class RoomApp {
   applySnapshot(payload) {
     if (payload.toId && payload.toId !== this.state.me.id) return;
 
+    const wasRevealed = !!this.state.revealed;
+
     if (!applySnapshot(this.state, payload)) return;
+
+    // If a snapshot transitions us back to hidden, allow the easter egg again on the next reveal.
+    if (wasRevealed && !this.state.revealed) {
+      this._deucesEggShown = false;
+      this._deucesEggPending = false;
+      this._lastRevealed = false;
+    }
 
     // Sync designated hostId via snapshots, but avoid overriding an active present host.
     // If snapshot hostId is NOT currently present, treat it as the designated (possibly-missing) host.
@@ -166,6 +213,9 @@ export class RoomApp {
     if (!this.host.canControlRound()) return;
 
     applyReset(this.state);
+    this._deucesEggShown = false;
+    this._deucesEggPending = false;
+    this._lastRevealed = false;
     this.render();
 
     await this.broadcast("reset", {
@@ -295,6 +345,9 @@ export class RoomApp {
       if (!payload || payload.roomId !== this.state.roomId) return;
       if (this.host.isHostPresent() && String(payload.by || "") !== this.state.hostId) return;
       applyReset(this.state);
+      this._deucesEggShown = false;
+      this._deucesEggPending = false;
+      this._lastRevealed = false;
       this.render();
     });
 
