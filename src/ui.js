@@ -91,8 +91,8 @@ export class Ui {
 
     const cardButtons = this.el.cards.querySelectorAll(".cardbtn");
     cardButtons.forEach(btn => {
-      const v = Number(btn.dataset.value);
-      btn.classList.toggle("selected", state.selectedCard === v);
+      const v = String(btn.dataset.value);
+      btn.classList.toggle("selected", state.selectedCard != null && String(state.selectedCard) === v);
       btn.disabled = state.revealed;
     });
 

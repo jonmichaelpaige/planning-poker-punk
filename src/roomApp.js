@@ -59,15 +59,26 @@ export class RoomApp {
     this.onReset = this.onReset.bind(this);
   }
 
-  everyonePresentVotedValue(value) {
+  getPresentVoteMatchInfo(value) {
     const present = this.state.presence || [];
-    if (!present.length) return false;
-    for (const p of present) {
-      if (!Object.prototype.hasOwnProperty.call(this.state.votes, p.id)) return false;
-      const v = this.state.votes[p.id];
-      if (!(v === value || String(v) === String(value))) return false;
+    const presentIds = new Set(present.map(p => p.id));
+
+    let count = 0;
+    let mismatch = false;
+    for (const [userId, v] of Object.entries(this.state.votes || {})) {
+      if (!presentIds.has(userId)) continue;
+      count += 1;
+      if (!(v === value || String(v) === String(value))) {
+        mismatch = true;
+        break;
+      }
     }
-    return true;
+
+    return {
+      count,
+      mismatch,
+      allMatch: count > 0 && !mismatch,
+    };
   }
 
   requireSupabaseConfig() {
@@ -97,13 +108,15 @@ export class RoomApp {
     }
 
     if (this._deucesEggPending && this.state.revealed && !this._deucesEggShown) {
-      // Wait until votes are complete (snapshots can land after the reveal broadcast).
-      if (this.everyonePresentVotedValue(2)) {
+      // Snapshots can land after the reveal broadcast.
+      // Trigger if everyone who voted (among present players) voted 2.
+      const info = this.getPresentVoteMatchInfo(2);
+      if (info.allMatch) {
         this.ui.showDeucesEgg();
         this._deucesEggShown = true;
         this._deucesEggPending = false;
-      } else if (this.state.presence.length && Object.keys(this.state.votes || {}).length >= this.state.presence.length) {
-        // Votes appear complete but not all 2; stop checking for this reveal.
+      } else if (info.mismatch && info.count > 0) {
+        // Someone voted something else; don't keep waiting.
         this._deucesEggPending = false;
       }
     }
@@ -328,8 +341,16 @@ export class RoomApp {
       if (!payload || payload.roomId !== this.state.roomId) return;
       if (this.state.revealed) return;
       const userId = String(payload.userId || "");
-      const value = Number(payload.value);
-      if (!userId || !Number.isFinite(value)) return;
+      const raw = payload.value;
+      let value;
+      if (raw === "?") {
+        value = "?";
+      } else {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        value = n;
+      }
+      if (!userId) return;
       applyLocalVote(this.state, { userId, value });
       this.render();
     });
