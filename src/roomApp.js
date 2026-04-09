@@ -49,6 +49,10 @@ export class RoomApp {
     this._deucesEggShown = false;
     this._deucesEggPending = false;
 
+    this._presenceTimer = null;
+    this._snapshotRetryTimer = null;
+    this._snapshotRetryCount = 0;
+
     this.supabaseClient = null;
     this.realtime = null;
     this.host = new HostController(win, this.state);
@@ -135,6 +139,37 @@ export class RoomApp {
     this.render();
   }
 
+  _schedulePresenceUpdate() {
+    if (this._presenceTimer) clearTimeout(this._presenceTimer);
+    this._presenceTimer = setTimeout(() => {
+      this._presenceTimer = null;
+      this.updatePresenceAndHost();
+    }, 60);
+  }
+
+  _requestSnapshotWithRetry(maxRetries = 2, intervalMs = 3000) {
+    this._snapshotRetryCount = 0;
+    this._clearSnapshotRetry();
+
+    const attempt = async () => {
+      if (!this.realtime) return;
+      await this.requestSnapshot();
+      this._snapshotRetryCount++;
+      if (this._snapshotRetryCount < maxRetries) {
+        this._snapshotRetryTimer = setTimeout(attempt, intervalMs);
+      }
+    };
+
+    attempt();
+  }
+
+  _clearSnapshotRetry() {
+    if (this._snapshotRetryTimer) {
+      clearTimeout(this._snapshotRetryTimer);
+      this._snapshotRetryTimer = null;
+    }
+  }
+
   async broadcast(event, payload) {
     if (!this.realtime) return;
     await this.realtime.send(event, payload);
@@ -166,6 +201,7 @@ export class RoomApp {
 
   applySnapshot(payload) {
     if (payload.toId && payload.toId !== this.state.me.id) return;
+    this._clearSnapshotRetry();
 
     const wasRevealed = !!this.state.revealed;
 
@@ -335,7 +371,7 @@ export class RoomApp {
       presenceKey: this.state.me.id,
     });
     this.realtime.connect();
-    this.realtime.onPresenceChanged(() => this.updatePresenceAndHost());
+    this.realtime.onPresenceChanged(() => this._schedulePresenceUpdate());
 
     this.realtime.onBroadcast("vote", (payload) => {
       if (!payload || payload.roomId !== this.state.roomId) return;
@@ -395,7 +431,11 @@ export class RoomApp {
           joinedAt,
         });
 
-        await this.requestSnapshot();
+        this._requestSnapshotWithRetry();
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        this.ui.setStatus("Reconnecting\u2026");
+      } else if (status === "CLOSED") {
+        this.ui.setStatus("Disconnected.");
       }
     });
 
@@ -406,10 +446,16 @@ export class RoomApp {
       return;
     }
 
-    this.updatePresenceAndHost();
+    this._schedulePresenceUpdate();
   }
 
   async leaveRoom({ silent } = {}) {
+    this._clearSnapshotRetry();
+    if (this._presenceTimer) {
+      clearTimeout(this._presenceTimer);
+      this._presenceTimer = null;
+    }
+
     if (this.realtime) {
       await this.realtime.unsubscribe();
     }
@@ -440,19 +486,18 @@ export class RoomApp {
 
     const roomFromUrl = normalizeRoomCode(getUrlParam(this.win, "room"));
     if (roomFromUrl) {
-      this.el.roomInput.value = roomFromUrl;
+      const savedName = String(this.el.nameInput.value || "").trim();
+      const defaultName = (savedName && safeName(savedName) !== "Anonymous") ? savedName : "";
 
-      if (!String(this.el.nameInput.value || "").trim() || safeName(this.el.nameInput.value) === "Anonymous") {
-        this.el.nameInput.value = "";
-      }
-
-      requestAnimationFrame(() => {
-        try {
-          this.el.nameInput.focus();
-          this.el.nameInput.select();
-        } catch {
-          // ignore
-        }
+      this.ui.showJoinModal(roomFromUrl, defaultName, {
+        onJoin: (name) => {
+          this.el.nameInput.value = name;
+          this.joinRoom(roomFromUrl, name);
+        },
+        onCancel: () => {
+          clearUrlRoom(this.win);
+          this.el.roomInput.value = roomFromUrl;
+        },
       });
     }
 

@@ -164,6 +164,91 @@ export class Ui {
     this.setStatus(state.revealed ? `Revealed • ${total} players` : `Waiting • ${voted}/${total} voted`);
   }
 
+  showJoinModal(roomCode, defaultName, { onJoin, onCancel }) {
+    this.hideJoinModal();
+
+    const overlay = this.doc.createElement("div");
+    overlay.id = "joinModal";
+    overlay.className = "join-modal-overlay";
+
+    const modal = this.doc.createElement("div");
+    modal.className = "join-modal card";
+
+    const heading = this.doc.createElement("h2");
+    heading.textContent = `Join Room ${roomCode}`;
+    modal.appendChild(heading);
+
+    const label = this.doc.createElement("label");
+    const labelSpan = this.doc.createElement("span");
+    labelSpan.textContent = "Your name";
+    label.appendChild(labelSpan);
+
+    const input = this.doc.createElement("input");
+    input.placeholder = "e.g. Alex";
+    input.maxLength = 32;
+    input.autocomplete = "nickname";
+    if (defaultName) input.value = defaultName;
+    label.appendChild(input);
+    modal.appendChild(label);
+
+    const error = this.doc.createElement("div");
+    error.className = "error";
+    error.hidden = true;
+    modal.appendChild(error);
+
+    const row = this.doc.createElement("div");
+    row.className = "row";
+
+    const joinBtn = this.doc.createElement("button");
+    joinBtn.type = "button";
+    joinBtn.className = "btn primary";
+    joinBtn.textContent = "Join room";
+
+    const cancelBtn = this.doc.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "btn";
+    cancelBtn.textContent = "Back";
+
+    row.appendChild(joinBtn);
+    row.appendChild(cancelBtn);
+    modal.appendChild(row);
+
+    overlay.appendChild(modal);
+    this.doc.body.appendChild(overlay);
+
+    const handleJoin = () => {
+      const name = safeName(input.value);
+      if (!name || name === "Anonymous") {
+        error.textContent = "Enter your name to join the room.";
+        error.hidden = false;
+        input.focus();
+        return;
+      }
+      error.hidden = true;
+      this.hideJoinModal();
+      onJoin(name);
+    };
+
+    joinBtn.addEventListener("click", handleJoin);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleJoin();
+    });
+    cancelBtn.addEventListener("click", () => {
+      this.hideJoinModal();
+      onCancel();
+    });
+
+    requestAnimationFrame(() => {
+      input.focus();
+      if (input.value) input.select();
+    });
+  }
+
+  hideJoinModal() {
+    const existing = this.doc.getElementById("joinModal");
+    if (existing) existing.remove();
+  }
+
   showDeucesEgg() {
     const existing = this.doc.getElementById("deucesEggOverlay");
     if (existing) return;

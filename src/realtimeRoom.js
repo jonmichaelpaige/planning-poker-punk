@@ -19,10 +19,10 @@ export class RealtimeRoom {
   }
 
   onPresenceChanged(callback) {
-    this.channel
-      .on("presence", { event: "sync" }, callback)
-      .on("presence", { event: "join" }, callback)
-      .on("presence", { event: "leave" }, callback);
+    // Only "sync" — it fires after every join/leave with the reconciled
+    // presence state.  Listening to join+leave as well causes the callback
+    // to fire 2-3× per event, creating render storms and broadcast floods.
+    this.channel.on("presence", { event: "sync" }, callback);
   }
 
   onBroadcast(event, callback) {
