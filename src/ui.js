@@ -141,6 +141,7 @@ export class Ui {
       if (state.revealed && hasVote) {
         const voteCard = this.doc.createElement("span");
         voteCard.className = "vote-card-mini";
+        voteCard.dataset.value = String(state.votes[p.id]);
         voteCard.textContent = String(state.votes[p.id]);
         badges.push(voteCard);
       }
