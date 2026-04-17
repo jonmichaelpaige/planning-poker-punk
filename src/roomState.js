@@ -13,10 +13,11 @@ export function createInitialState({ userId }) {
     lastSnapshotAt: 0,
     selectedCard: null,
     presence: [],
+    logId: null,
   };
 }
 
-export function enterRoom(state, { roomId, name, hostId }) {
+export function enterRoom(state, { roomId, name, hostId, logId }) {
   state.roomId = roomId;
   state.me.name = name;
   state.hostId = hostId || "";
@@ -29,6 +30,7 @@ export function enterRoom(state, { roomId, name, hostId }) {
   state.selectedCard = null;
   state.lastSnapshotAt = 0;
   state.presence = [];
+  state.logId = logId ?? null;
 }
 
 export function leaveRoomState(state) {
@@ -42,6 +44,7 @@ export function leaveRoomState(state) {
   state.selectedCard = null;
   state.presence = [];
   state.lastSnapshotAt = 0;
+  state.logId = null;
 }
 
 export function setPresence(state, presenceList) {
@@ -80,5 +83,8 @@ export function applySnapshot(state, payload) {
   state.lastSnapshotAt = ts;
   state.revealed = !!payload.revealed;
   state.votes = { ...(payload.votes || {}) };
+  if (payload.logId != null && state.logId == null) {
+    state.logId = payload.logId;
+  }
   return true;
 }

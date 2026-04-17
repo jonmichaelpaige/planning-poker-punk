@@ -94,6 +94,49 @@ export class RoomApp {
     }
   }
 
+  ensureSupabaseClient() {
+    this.requireSupabaseConfig();
+    if (!this.supabaseClient) {
+      this.supabaseClient = this.win.supabase.createClient(this.win.SUPABASE_URL, this.win.SUPABASE_ANON_KEY);
+    }
+    return this.supabaseClient;
+  }
+
+  async logRoomCreated(roomId) {
+    try {
+      const client = this.ensureSupabaseClient();
+      const { data, error } = await client
+        .from("room_logs")
+        .insert({ room_name: roomId })
+        .select("id")
+        .single();
+      if (error || !data) return null;
+      return data.id;
+    } catch {
+      return null;
+    }
+  }
+
+  async incrementRevealCount() {
+    const logId = this.state.logId;
+    if (!logId || !this.supabaseClient) return;
+    try {
+      const { data, error } = await this.supabaseClient
+        .from("room_logs")
+        .select("reveal_count")
+        .eq("id", logId)
+        .single();
+      if (error || !data) return;
+      const next = (data.reveal_count ?? 0) + 1;
+      await this.supabaseClient
+        .from("room_logs")
+        .update({ reveal_count: next })
+        .eq("id", logId);
+    } catch {
+      // best-effort logging
+    }
+  }
+
 
   renderCards() {
     this.ui.renderCards(this.FIB_CARDS, this.onPickCard);
@@ -183,6 +226,7 @@ export class RoomApp {
       revealed: this.state.revealed,
       votes: this.state.votes,
       hostId: this.state.hostId,
+      logId: this.state.logId || null,
       fromId: this.state.me.id,
       toId: toId || null,
       ts: Date.now(),
@@ -256,6 +300,8 @@ export class RoomApp {
     });
 
     await this.broadcastSnapshot({ toId: null });
+
+    this.incrementRevealCount();
   }
 
   async onReset() {
@@ -282,7 +328,8 @@ export class RoomApp {
       const name = this.ui.requireNameInput();
       if (!name) return;
       const roomId = randomRoomCode(this.win.crypto, 6);
-      await this.joinRoom(roomId, name);
+      const logId = await this.logRoomCreated(roomId);
+      await this.joinRoom(roomId, name, { logId });
     });
 
     this.el.joinRoomBtn.addEventListener("click", async () => {
@@ -321,7 +368,7 @@ export class RoomApp {
     });
   }
 
-  async joinRoom(roomId, name) {
+  async joinRoom(roomId, name, opts = {}) {
     roomId = normalizeRoomCode(roomId);
     name = safeName(name);
 
@@ -359,6 +406,7 @@ export class RoomApp {
       roomId,
       name,
       hostId: loadLastHost(this.win, roomId),
+      logId: opts.logId ?? null,
     });
 
     setUrlRoom(this.win, roomId);
